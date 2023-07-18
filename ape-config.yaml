@@ -1,0 +1,4 @@
+name: generative_v1
+plugins:
+  - name: vyper
+
