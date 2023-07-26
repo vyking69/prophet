@@ -98,6 +98,7 @@ owner: public(address)
 isMinter: public(HashMap[address, bool])
 
 totalSupply: public(uint256)
+next_token_id: uint256
 
 # @dev TokenID => owner
 idToOwner: public(HashMap[uint256, address])
@@ -133,8 +134,6 @@ struct complete_NFT:
     _given_asset_3: uint8
     _tier: uint8
 
-
-
 # uint256 used here because it matches the total number of possible NFTs
 completed_NFTs_map: HashMap[uint256, complete_NFT]
 
@@ -145,6 +144,8 @@ def __init__(token_contract_address: address):
     """
     self.owner = msg.sender
     self.baseURI = "ipfs://QmY2RmUrYTF2uujSrp4JHJC77N1eWLC3YSAQGKJyNh2JDr"
+
+    self.next_token_id = 0
 
     self.asset_pool_1 = [1,2,3,4]
     self.asset_pool_2 = [1,2]
@@ -362,6 +363,7 @@ def addMinter(minter: address):
     assert msg.sender == self.owner
     self.isMinter[minter] = True
 
+# TODO - update all the functions so that external functions reference internal _functions
 @external
 def mint(receiver: address, tier: uint8 = 1) -> bool:
     """
@@ -376,8 +378,8 @@ def mint(receiver: address, tier: uint8 = 1) -> bool:
     assert msg.sender == self.owner or self.isMinter[msg.sender], "Access is denied."
     # Throws if `receiver` is zero address
     assert receiver != empty(address)
-    # Throws if `totalSupply` count NFTs tracked by this contract is owned by someone
-    assert self.idToOwner[self.totalSupply] == empty(address)
+    # Throws if `next_token_id` count NFTs tracked by this contract is owned by someone
+    assert self.idToOwner[self.next_token_id] == empty(address)
 
     ## INITIALIZE AND STORE GENERATIVE ELEMENTS
     # TODO: add proper Chainlink VRF oracle randomization elements
@@ -393,12 +395,17 @@ def mint(receiver: address, tier: uint8 = 1) -> bool:
 
     # associate minted NFT's generated features to the tokenID
     # aka: the count of totalSupply at time of mint
-    self.completed_NFTs_map[self.totalSupply] = newly_minted_NFT
+    self.completed_NFTs_map[self.next_token_id] = newly_minted_NFT
 
     # Create new owner to allocate token
-    self.idToOwner[self.totalSupply] = receiver
-    # Change count tracking, `totalSupply` represents id for `tokenId`
+    self.idToOwner[self.next_token_id] = receiver
+
+    # update tracker for NFTs in total circulation (note: not used for next tokenID anymore)
     self.totalSupply += 1
+    
+    # independent next tokenID tracker (required to support this version of burning NFTs)
+    self.next_token_id += 1
+
     # Update balance of minter
     self.balanceOf[receiver] += 1
 
@@ -406,49 +413,6 @@ def mint(receiver: address, tier: uint8 = 1) -> bool:
 
     return True
 
-@internal
-def _mint(receiver: address, tier: uint8 = 1) -> bool:
-    """
-    @dev Create a new Owner NFT
-    @return bool confirming that the minting occurred 
-    """ 
-
-    # TODO: how do we add in the token requirements here for the first mint? 
-    ## perhaps as seperate functions?
-
-    # Throws if `msg.sender` is not the minter
-    assert msg.sender == self.owner or self.isMinter[msg.sender], "Access is denied."
-    # Throws if `receiver` is zero address
-    assert receiver != empty(address)
-    # Throws if `totalSupply` count NFTs tracked by this contract is owned by someone
-    assert self.idToOwner[self.totalSupply] == empty(address)
-
-    ## INITIALIZE AND STORE GENERATIVE ELEMENTS
-    # TODO: add proper Chainlink VRF oracle randomization elements
-    _NFT_background_color: color = color({red: 1, green: 2, blue: 3})
-
-    newly_minted_NFT: complete_NFT = complete_NFT({
-        _background_color: _NFT_background_color,
-        _given_asset_1: self.asset_pool_1[0],
-        _given_asset_2: self.asset_pool_2[0],
-        _given_asset_3: self.asset_pool_3[0],
-        _tier: tier
-    })
-
-    # associate minted NFT's generated features to the tokenID
-    # aka: the count of totalSupply at time of mint
-    self.completed_NFTs_map[self.totalSupply] = newly_minted_NFT
-
-    # Create new owner to allocate token
-    self.idToOwner[self.totalSupply] = receiver
-    # Change count tracking, `totalSupply` represents id for `tokenId`
-    self.totalSupply += 1
-    # Update balance of minter
-    self.balanceOf[receiver] += 1
-
-    log Transfer(empty(address), receiver, self.totalSupply)
-
-    return True
 
 @external
 def burn(_tokenId: uint256):
@@ -469,6 +433,7 @@ def burn(_tokenId: uint256):
     # Change the owner
     self.idToOwner[_tokenId] = empty(address)
 
+    # TODO - make totalSupply independent of the nextTokenID mechanism
     # Change count tracking
     self.balanceOf[msg.sender] -= 1
     self.totalSupply -= 1
@@ -492,7 +457,7 @@ def _level_up(tokenID: uint256) -> bool:
     # burn NFT
 
     # mint new NFT with updated tier level
-    self._mint(msg.sender, 2)
+    # self.mint(msg.sender, 2)
     
     return True
 

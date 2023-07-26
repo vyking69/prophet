@@ -1,5 +1,5 @@
 import pytest
-
+import boa
 
 @pytest.fixture(scope="session")
 def owner(accounts):
@@ -14,3 +14,10 @@ def receiver(accounts):
 @pytest.fixture(scope="session")
 def nft(owner, project):
     return owner.deploy(project.NFT)
+
+@pytest.fixture()
+def nft_env_values():
+    w = boa.env.eoa
+    token = boa.load("./contracts/Token.vy")
+    nft = boa.load("./contracts/NFT.vy", token.address) 
+    return [w, token, nft]
