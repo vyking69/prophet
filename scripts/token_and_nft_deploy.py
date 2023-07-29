@@ -7,8 +7,8 @@ nft = boa.load("./contracts/NFT.vy", token.address)
 
 nft.mint(w)
 nft.idToOwner(0)
-nft.balanceOf(w)
-nft.totalSupply()
+print(nft.balanceOf(w))
+print(nft.totalSupply())
 
 nft.burn(0)
 nft.idToOwner(0)

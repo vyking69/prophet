@@ -98,7 +98,7 @@ owner: public(address)
 isMinter: public(HashMap[address, bool])
 
 totalSupply: public(uint256)
-next_token_id: uint256
+next_token_id: public(uint256)
 
 # @dev TokenID => owner
 idToOwner: public(HashMap[uint256, address])
@@ -137,6 +137,9 @@ struct complete_NFT:
 # uint256 used here because it matches the total number of possible NFTs
 completed_NFTs_map: HashMap[uint256, complete_NFT]
 
+# index matches tier - 1, so leveling up a tier 1 to tier 2 costs the price at indext 1 - 1 (index 0)
+tier_upgrade_cost: uint256[4]
+
 @external
 def __init__(token_contract_address: address):
     """
@@ -151,6 +154,9 @@ def __init__(token_contract_address: address):
     self.asset_pool_2 = [1,2]
     self.asset_pool_3 = [1,2,3,4]
 
+    # TODO - update costs and set it as a passable parameter?
+    self.tier_upgrade_cost = [10,100,1000,10000]
+
     self._token_contract_address = token_contract_address
     
 # ERC721 Metadata Extension
@@ -163,6 +169,11 @@ def name() -> String[40]:
 @external
 def symbol() -> String[5]:
     return SYMBOL
+
+@view
+@external
+def next_id() -> uint256:
+    return self.next_token_id
 
 @view
 @external
@@ -275,6 +286,80 @@ def _transferFrom(owner: address, receiver: address, tokenId: uint256, sender: a
     # Log the transfer
     log Transfer(owner, receiver, tokenId)
 
+@internal 
+def _mint(receiver: address, tier: uint8 = 1) -> bool:
+    """
+    @dev Create a new Owner NFT
+    @return bool confirming that the minting occurred 
+    """ 
+
+    # TODO: how do we add in the token requirements here for the first mint? 
+    ## perhaps as seperate functions?
+
+    # Throws if `msg.sender` is not the minter
+    assert msg.sender == self.owner or self.isMinter[msg.sender], "Access is denied."
+    # Throws if `receiver` is zero address
+    assert receiver != empty(address)
+    # Throws if `next_token_id` count NFTs tracked by this contract is owned by someone
+    assert self.idToOwner[self.next_token_id] == empty(address)
+
+    ## INITIALIZE AND STORE GENERATIVE ELEMENTS
+    # TODO: add proper Chainlink VRF oracle randomization elements
+    _NFT_background_color: color = color({red: 1, green: 2, blue: 3})
+
+    newly_minted_NFT: complete_NFT = complete_NFT({
+        _background_color: _NFT_background_color,
+        _given_asset_1: self.asset_pool_1[0],
+        _given_asset_2: self.asset_pool_2[0],
+        _given_asset_3: self.asset_pool_3[0],
+        _tier: tier
+    })
+
+    # associate minted NFT's generated features to the tokenID
+    # aka: the count of totalSupply at time of mint
+    self.completed_NFTs_map[self.next_token_id] = newly_minted_NFT
+
+    # Create new owner to allocate token
+    self.idToOwner[self.next_token_id] = receiver
+
+    # update tracker for NFTs in total circulation (note: not used for next tokenID anymore)
+    self.totalSupply += 1
+    
+    # independent next tokenID tracker (required to support this version of burning NFTs)
+    self.next_token_id += 1
+
+    # Update balance of minter
+    self.balanceOf[receiver] += 1
+
+    log Transfer(empty(address), receiver, self.totalSupply)
+
+    return True
+
+@internal
+def _burn(_tokenId: uint256):
+    """
+    @dev Burns a specific ERC721 token.
+         Throws unless `msg.sender` is the current owner, an authorized operator, or the approved
+         address for this NFT.
+         Throws if `_tokenId` is not a valid NFT.
+    @param _tokenId uint256 id of the ERC721 token to be burned.
+    """
+    # Check requirements
+    assert self._isApprovedOrOwner(msg.sender, _tokenId)
+    owner: address = self.idToOwner[_tokenId]
+
+    # Throws if `_tokenId` is not a valid NFT
+    assert owner != empty(address)
+
+    # Change the owner
+    self.idToOwner[_tokenId] = empty(address)
+
+    # TODO - make totalSupply independent of the nextTokenID mechanism
+    # Change count tracking
+    self.balanceOf[msg.sender] -= 1
+    self.totalSupply -= 1
+
+    log Transfer(owner, empty(address), _tokenId)
 
 @external
 def transferFrom(owner: address, receiver: address, tokenId: uint256):
@@ -366,98 +451,39 @@ def addMinter(minter: address):
 # TODO - update all the functions so that external functions reference internal _functions
 @external
 def mint(receiver: address, tier: uint8 = 1) -> bool:
-    """
-    @dev Create a new Owner NFT
-    @return bool confirming that the minting occurred 
-    """ 
-
-    # TODO: how do we add in the token requirements here for the first mint? 
-    ## perhaps as seperate functions?
-
-    # Throws if `msg.sender` is not the minter
-    assert msg.sender == self.owner or self.isMinter[msg.sender], "Access is denied."
-    # Throws if `receiver` is zero address
-    assert receiver != empty(address)
-    # Throws if `next_token_id` count NFTs tracked by this contract is owned by someone
-    assert self.idToOwner[self.next_token_id] == empty(address)
-
-    ## INITIALIZE AND STORE GENERATIVE ELEMENTS
-    # TODO: add proper Chainlink VRF oracle randomization elements
-    _NFT_background_color: color = color({red: 1, green: 2, blue: 3})
-
-    newly_minted_NFT: complete_NFT = complete_NFT({
-        _background_color: _NFT_background_color,
-        _given_asset_1: self.asset_pool_1[0],
-        _given_asset_2: self.asset_pool_2[0],
-        _given_asset_3: self.asset_pool_3[0],
-        _tier: tier
-    })
-
-    # associate minted NFT's generated features to the tokenID
-    # aka: the count of totalSupply at time of mint
-    self.completed_NFTs_map[self.next_token_id] = newly_minted_NFT
-
-    # Create new owner to allocate token
-    self.idToOwner[self.next_token_id] = receiver
-
-    # update tracker for NFTs in total circulation (note: not used for next tokenID anymore)
-    self.totalSupply += 1
-    
-    # independent next tokenID tracker (required to support this version of burning NFTs)
-    self.next_token_id += 1
-
-    # Update balance of minter
-    self.balanceOf[receiver] += 1
-
-    log Transfer(empty(address), receiver, self.totalSupply)
-
+    self._mint(receiver, tier)
     return True
 
+@external
+def burn(tokenId: uint256):
+    self._burn(tokenId)
 
 @external
-def burn(_tokenId: uint256):
-    """
-    @dev Burns a specific ERC721 token.
-         Throws unless `msg.sender` is the current owner, an authorized operator, or the approved
-         address for this NFT.
-         Throws if `_tokenId` is not a valid NFT.
-    @param _tokenId uint256 id of the ERC721 token to be burned.
-    """
-    # Check requirements
-    assert self._isApprovedOrOwner(msg.sender, _tokenId)
-    owner: address = self.idToOwner[_tokenId]
-
-    # Throws if `_tokenId` is not a valid NFT
-    assert owner != empty(address)
-
-    # Change the owner
-    self.idToOwner[_tokenId] = empty(address)
-
-    # TODO - make totalSupply independent of the nextTokenID mechanism
-    # Change count tracking
-    self.balanceOf[msg.sender] -= 1
-    self.totalSupply -= 1
-    
-
-    log Transfer(owner, empty(address), _tokenId)
-    
-
-@external
-def _level_up(tokenID: uint256) -> bool:
+def level_up(tokenID: uint256) -> bool:
     # check if user has a proper NFT
-    assert self.completed_NFTs_map[tokenID]._tier >= 1, "NFT not of correct level"
+    tier: uint8 = self.completed_NFTs_map[tokenID]._tier
+
+    assert tier >= 1, "NFT not of correct level"
+    assert tier < 5, "NFT not of correct level"
+    
     # TODO: incorporte other security elements of mint(), either by copy-paste or moving it into this function
 
+    # check reference table for required amount of tokens to level up
+    # split variables to avoid reference and memory type errors!
+    tier_index: uint8 = self.completed_NFTs_map[tokenID]._tier - 1
+    cost_to_level_up: uint256 = self.tier_upgrade_cost[tier_index]
+
     # check if user has enough tokens to burn
-    assert token_contract_interface(self._token_contract_address).see_balance_of(msg.sender) > 0, "not enough burnable tokens to level up!"
+    assert token_contract_interface(self._token_contract_address).see_balance_of(msg.sender) >= cost_to_level_up, "not enough burnable tokens to level up!"
 
     # burn tokens
-    token_contract_interface(self._token_contract_address).burn(1)
+    token_contract_interface(self._token_contract_address).burn(cost_to_level_up)
 
     # burn NFT
+    self._burn(tokenID)
 
     # mint new NFT with updated tier level
-    # self.mint(msg.sender, 2)
+    self._mint(msg.sender, tier + 1)
     
     return True
 
