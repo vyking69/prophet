@@ -114,6 +114,10 @@ def burn(amount: uint256) -> bool:
     @notice Burns the supplied amount of tokens from the sender wallet.
     @param amount The amount of token to be burned.
     """
+    print(amount)
+    print(msg.sender)
+    print(self.balanceOf[msg.sender])
+
     self.balanceOf[msg.sender] -= amount
     self.totalSupply -= amount
 

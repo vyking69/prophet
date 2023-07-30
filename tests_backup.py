@@ -1,7 +1,7 @@
 import boa
 import pytest
 
-@pytest.mark.mint_and_burn
+
 def test_simple_mint_and_burn(nft_env_values):
     w = nft_env_values[0]
     nft = nft_env_values[2]
@@ -74,13 +74,13 @@ def test_simple_mint_and_burn(nft_env_values):
     ), "only three NFTs has been minted and one burned--something went wrong with the count"
     assert nft.next_id() == 5, "counter broke or something went wrong with tracking token id"
 
-@pytest.mark.mint_and_burn
+
 def test_n_burn(nft_env_values):
     w = nft_env_values[0]
     nft = nft_env_values[2]
 
     # number of mints and burns to test
-    n = 100
+    n = 100000
 
     # reference number to track supply against
     initial_supply = nft.totalSupply()
@@ -113,7 +113,7 @@ def test_n_burn(nft_env_values):
     # assert check
     assert 1 == 1
 
-@pytest.mark.burn
+
 @pytest.mark.xfail(reason="Expected failure burning an NFT before mint")
 def test_burning_an_nft_before_mint(nft_env_values):
     nft = nft_env_values[2]
@@ -121,7 +121,7 @@ def test_burning_an_nft_before_mint(nft_env_values):
     # burn the NFT before mint
     nft.burn(0)
 
-@pytest.mark.burn
+
 @pytest.mark.xfail(reason="Expected failure due to burning a burned NFT")
 def test_burning_a_burned_nft(nft_env_values):
     w = nft_env_values[0]
@@ -133,27 +133,3 @@ def test_burning_a_burned_nft(nft_env_values):
     # burn the same NFT twice
     nft.burn(0)
     nft.burn(0)
-
-@pytest.mark.level_up
-def test_level_up(nft_env_values):
-    w = nft_env_values[0]
-    token = nft_env_values[1]
-    nft = nft_env_values[2]
-
-    print(w)
-    print(boa.env.eoa)
-    print(nft.address)
-    
-    # TODO - figure out if we should be using prank or creating new wallets here and elsewhere?
-
-    # track a freshly minted nft
-    latest_nft = nft.next_id()
-
-    # mint the nft
-    nft.mint(w)
-
-    # add tokens to w for level up operation
-    token.mint(w, 100000)
-
-    # attempt to level up the latest nft
-    nft.level_up(latest_nft)

@@ -55,6 +55,7 @@ interface ERC721Enumerable:
 # Declare the companion token contract interface
 interface token_contract_interface:
     def see_balance_of(account: address) -> uint256: nonpayable
+    def transfer(receiver: address, amount: uint256) -> bool: nonpayable
     def burn(amount: uint256) -> bool: nonpayable
 
 _token_contract_address: public(address)
@@ -475,6 +476,8 @@ def level_up(tokenID: uint256) -> bool:
 
     # check if user has enough tokens to burn
     assert token_contract_interface(self._token_contract_address).see_balance_of(msg.sender) >= cost_to_level_up, "not enough burnable tokens to level up!"
+
+    # transfer tokens from user to NFT contract account
 
     # burn tokens
     token_contract_interface(self._token_contract_address).burn(cost_to_level_up)
