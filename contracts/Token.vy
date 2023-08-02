@@ -28,18 +28,26 @@ event Approval:
 
 owner: public(address)
 isMinter: public(HashMap[address, bool])
+_nft_contract_address: public(address)
 
 nonces: public(HashMap[address, uint256])
 DOMAIN_SEPARATOR: public(bytes32)
 DOMAIN_TYPE_HASH: constant(bytes32) = keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')
 PERMIT_TYPE_HASH: constant(bytes32) = keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
 
+# Declare the companion token contract interface
+interface nft_contract_interface:
+    def see_nft_tier(tokenId: uint256) -> uint8: nonpayable
+    def level_up(tokenID: uint256) -> bool: nonpayable
 
 @external
-def __init__():
+def __init__(nft_contract_address: address):
     self.owner = msg.sender
     self.totalSupply = 1000
     self.balanceOf[msg.sender] = 1000
+
+    self._nft_contract_address = nft_contract_address
+
 
     # EIP-712
     self.DOMAIN_SEPARATOR = keccak256(
@@ -114,9 +122,6 @@ def burn(amount: uint256) -> bool:
     @notice Burns the supplied amount of tokens from the sender wallet.
     @param amount The amount of token to be burned.
     """
-    print(amount)
-    print(msg.sender)
-    print(self.balanceOf[msg.sender])
 
     self.balanceOf[msg.sender] -= amount
     self.totalSupply -= amount
@@ -150,3 +155,8 @@ def addMinter(target: address) -> bool:
     assert target != empty(address), "Cannot add zero address as minter."
     self.isMinter[target] = True
     return True
+
+@external
+def trigger_level_up(tokenId: uint256):
+    # assert nft_contract_interface(self._nft_contract_address).see_balance_of(msg.sender) >= cost_to_level_up, "not enough burnable tokens to level up!"
+    assert nft_contract_interface(self._nft_contract_address).see_nft_tier(tokenId) < 5, "NFT not below tier 5"

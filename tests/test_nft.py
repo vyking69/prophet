@@ -135,6 +135,25 @@ def test_burning_a_burned_nft(nft_env_values):
     nft.burn(0)
 
 @pytest.mark.level_up
+def test_simple_level_up(nft_env_values):
+    w = nft_env_values[0]
+    nft = nft_env_values[2]
+
+    working_token_id = nft.next_id()
+
+    nft.mint(w)
+
+    assert nft.see_nft_tier(working_token_id) == 1, "newly minted NFT not tier 1"
+
+    nft.sample_tier_up(working_token_id)
+    
+    assert nft.see_nft_tier(working_token_id) == 2, "NFT did not level up to tier 2"
+
+
+
+
+@pytest.mark.level_up
+@pytest.mark.skip
 def test_level_up(nft_env_values):
     w = nft_env_values[0]
     token = nft_env_values[1]

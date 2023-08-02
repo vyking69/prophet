@@ -136,13 +136,13 @@ struct complete_NFT:
     _tier: uint8
 
 # uint256 used here because it matches the total number of possible NFTs
-completed_NFTs_map: HashMap[uint256, complete_NFT]
+completed_NFTs_map: public(HashMap[uint256, complete_NFT])
 
 # index matches tier - 1, so leveling up a tier 1 to tier 2 costs the price at indext 1 - 1 (index 0)
 tier_upgrade_cost: uint256[4]
 
 @external
-def __init__(token_contract_address: address):
+def __init__():
     """
     @dev Contract constructor.
     """
@@ -157,8 +157,6 @@ def __init__(token_contract_address: address):
 
     # TODO - update costs and set it as a passable parameter?
     self.tier_upgrade_cost = [10,100,1000,10000]
-
-    self._token_contract_address = token_contract_address
     
 # ERC721 Metadata Extension
 @pure
@@ -175,6 +173,16 @@ def symbol() -> String[5]:
 @external
 def next_id() -> uint256:
     return self.next_token_id
+
+@view
+@external
+def see_nft_attributes(tokenId: uint256) -> complete_NFT:
+    return self.completed_NFTs_map[tokenId]
+
+@view
+@external
+def see_nft_tier(tokenId: uint256) -> uint8:
+    return self.completed_NFTs_map[tokenId]._tier
 
 @view
 @external
@@ -361,6 +369,21 @@ def _burn(_tokenId: uint256):
     self.totalSupply -= 1
 
     log Transfer(owner, empty(address), _tokenId)
+
+@internal
+def _increase_tier(_tokenId: uint256) -> bool:
+    current_tier: uint8 = self.completed_NFTs_map[_tokenId]._tier
+
+    assert current_tier < 5, "can't level up past tier 5"
+
+    self.completed_NFTs_map[_tokenId]._tier += 1
+
+    return True
+
+@external
+def sample_tier_up(tokenId: uint256):
+    self._increase_tier(tokenId)
+
 
 @external
 def transferFrom(owner: address, receiver: address, tokenId: uint256):

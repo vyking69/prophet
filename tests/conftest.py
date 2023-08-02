@@ -18,6 +18,6 @@ def nft(owner, project):
 @pytest.fixture()
 def nft_env_values():
     w = boa.env.eoa
-    token = boa.load("./contracts/Token.vy")
-    nft = boa.load("./contracts/NFT.vy", token.address) 
+    nft = boa.load("./contracts/NFT.vy") 
+    token = boa.load("./contracts/Token.vy", nft.address)
     return [w, token, nft]
