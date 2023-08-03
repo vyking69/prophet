@@ -138,9 +138,6 @@ struct complete_NFT:
 # uint256 used here because it matches the total number of possible NFTs
 completed_NFTs_map: public(HashMap[uint256, complete_NFT])
 
-# index matches tier - 1, so leveling up a tier 1 to tier 2 costs the price at indext 1 - 1 (index 0)
-tier_upgrade_cost: uint256[4]
-
 @external
 def __init__():
     """
@@ -154,9 +151,6 @@ def __init__():
     self.asset_pool_1 = [1,2,3,4]
     self.asset_pool_2 = [1,2]
     self.asset_pool_3 = [1,2,3,4]
-
-    # TODO - update costs and set it as a passable parameter?
-    self.tier_upgrade_cost = [10,100,1000,10000]
     
 # ERC721 Metadata Extension
 @pure
@@ -483,33 +477,26 @@ def burn(tokenId: uint256):
     self._burn(tokenId)
 
 @external
-def level_up(tokenID: uint256) -> bool:
-    # check if user has a proper NFT
-    tier: uint8 = self.completed_NFTs_map[tokenID]._tier
-
-    assert tier >= 1, "NFT not of correct level"
-    assert tier < 5, "NFT not of correct level"
+def level_up(tokenId: uint256) -> bool:
     
     # TODO: incorporte other security elements of mint(), either by copy-paste or moving it into this function
 
-    # check reference table for required amount of tokens to level up
-    # split variables to avoid reference and memory type errors!
-    tier_index: uint8 = self.completed_NFTs_map[tokenID]._tier - 1
-    cost_to_level_up: uint256 = self.tier_upgrade_cost[tier_index]
-
-    # check if user has enough tokens to burn
-    assert token_contract_interface(self._token_contract_address).see_balance_of(msg.sender) >= cost_to_level_up, "not enough burnable tokens to level up!"
-
-    # transfer tokens from user to NFT contract account
+    # TODO: should only the token contract be able to call level_up?
+    # assert msg.sender == Token.address
 
     # burn tokens
-    token_contract_interface(self._token_contract_address).burn(cost_to_level_up)
 
     # burn NFT
-    self._burn(tokenID)
+    # self._burn(tokenID)
 
     # mint new NFT with updated tier level
-    self._mint(msg.sender, tier + 1)
+    # self._mint(msg.sender, tier + 1)
+
+    # increase tier
+    self._increase_tier(tokenId)
+    
+    # reroll attributes based on new tier
+    # TODO reroll and generative elements here...
     
     return True
 

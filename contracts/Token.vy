@@ -40,6 +40,9 @@ interface nft_contract_interface:
     def see_nft_tier(tokenId: uint256) -> uint8: nonpayable
     def level_up(tokenID: uint256) -> bool: nonpayable
 
+# index matches tier - 1, so leveling up a tier 1 to tier 2 costs the price at indext 1 - 1 (index 0)
+_tier_upgrade_cost: public(uint256[4])
+
 @external
 def __init__(nft_contract_address: address):
     self.owner = msg.sender
@@ -47,6 +50,9 @@ def __init__(nft_contract_address: address):
     self.balanceOf[msg.sender] = 1000
 
     self._nft_contract_address = nft_contract_address
+
+    # TODO - update costs and set it as a passable parameter?
+    self._tier_upgrade_cost = [10,100,1000,10000]
 
 
     # EIP-712
@@ -116,19 +122,26 @@ def approve(spender: address, amount: uint256) -> bool:
     log Approval(msg.sender, spender, amount)
     return True
 
-@external
-def burn(amount: uint256) -> bool:
+@internal
+def _burn(_amount: uint256, _sender_address: address) -> bool:
     """
     @notice Burns the supplied amount of tokens from the sender wallet.
     @param amount The amount of token to be burned.
     """
 
-    self.balanceOf[msg.sender] -= amount
-    self.totalSupply -= amount
+    assert self.balanceOf[_sender_address] >= _amount
 
-    log Transfer(msg.sender, empty(address), amount)
+    self.balanceOf[_sender_address] -= _amount
+    self.totalSupply -= _amount
+
+    log Transfer(_sender_address, empty(address), _amount)
 
     return True
+
+@external
+def burn(amount: uint256) -> bool:
+    return self._burn(amount, msg.sender)
+   
 
 @external
 def mint(receiver: address, amount: uint256) -> bool:
@@ -150,13 +163,20 @@ def mint(receiver: address, amount: uint256) -> bool:
     return True
 
 @external
-def addMinter(target: address) -> bool:
-    assert msg.sender == self.owner
-    assert target != empty(address), "Cannot add zero address as minter."
-    self.isMinter[target] = True
-    return True
-
-@external
 def trigger_level_up(tokenId: uint256):
-    # assert nft_contract_interface(self._nft_contract_address).see_balance_of(msg.sender) >= cost_to_level_up, "not enough burnable tokens to level up!"
-    assert nft_contract_interface(self._nft_contract_address).see_nft_tier(tokenId) < 5, "NFT not below tier 5"
+    # get tier of provided NFT
+    tier: uint8 = nft_contract_interface(self._nft_contract_address).see_nft_tier(tokenId)
+
+    assert tier >= 1, "NFT not of correct level"
+    assert tier < 5, "NFT not of correct level"
+
+    # check reference table for required amount of tokens to level up
+    cost_to_level_up: uint256 = self._tier_upgrade_cost[convert(tier, uint256) - 1]
+    
+    # check if user has enough tokens to burn
+    assert self.balanceOf[msg.sender] >= cost_to_level_up, "not enough burnable tokens to level up!"
+
+    # burn tokens
+    self._burn(cost_to_level_up, msg.sender)
+
+    nft_contract_interface(self._nft_contract_address).level_up(tokenId)
