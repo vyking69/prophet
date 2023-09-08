@@ -484,14 +484,6 @@ def level_up(tokenId: uint256) -> bool:
     # TODO: should only the token contract be able to call level_up?
     # assert msg.sender == Token.address
 
-    # burn tokens
-
-    # burn NFT
-    # self._burn(tokenID)
-
-    # mint new NFT with updated tier level
-    # self._mint(msg.sender, tier + 1)
-
     # increase tier
     self._increase_tier(tokenId)
     

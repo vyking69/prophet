@@ -2,7 +2,8 @@ from PIL import Image
 import random
 import glob
 
-class Character:
+# DEFINITIONS
+class Avatar:
     def __init__(self, directory):
         self.directory = directory
         self.images = self.load_images()
@@ -17,18 +18,26 @@ class Character:
         else:
             return None
 
-head_directory = "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/heads"
-ally_directory = "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/allies"
-background_directory = "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/background images"
-hair_directory = "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/hair"
+# assign directories
+head_directory = "/Users/aaa/Projects/generative_nft_v1/generative_assets/head 2"
+mouth_directory = "/Users/aaa/Projects/generative_nft_v1/generative_assets/mouth"
+ally_directory = "/Users/aaa/Projects/generative_nft_v1/generative_assets/allies"
+background_directory = "/Users/aaa/Projects/generative_nft_v1/generative_assets/background images"
+hair_directory = "/Users/aaa/Projects/generative_nft_v1/generative_assets/resized_hair"
+eyes_directory = "/Users/aaa/Projects/generative_nft_v1/generative_assets/resized_eyes"
+eyebrows_directory = "/Users/aaa/Projects/generative_nft_v1/generative_assets/eyebrows 2"
+outfits_directory = "/Users/aaa/Projects/generative_nft_v1/generative_assets/outfits 2"
 
-head = Character(head_directory)
-ally = Character(ally_directory)
-background = Character(background_directory)
-hair = Character(hair_directory)
-
-random_head_image = head.get_random_image()
-random_ally_image = ally.get_random_image()
+## INIT
+# create avatar obj
+head = Avatar(head_directory)
+mouth_directory = Avatar(mouth_directory)
+ally = Avatar(ally_directory)
+background = Avatar(background_directory)
+hair = Avatar(hair_directory)
+eyes = Avatar(eyes_directory)
+eyebrows_directory = Avatar(eyebrows_directory)
+outfits = Avatar(outfits_directory)
 
 # Open the background and ally images
 background = Image.open(
@@ -38,10 +47,13 @@ ally = Image.open(
     ally.get_random_image()
 )
 body = Image.open(
-    "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/outfits/gold bomber.png"    
+    outfits.get_random_image()
 )
 head = Image.open(
     head.get_random_image()
+)
+eyes = Image.open(
+    eyes.get_random_image()
 )
 menu = Image.open(
     "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/attack menu done/spacing rpg attack.png"
@@ -50,52 +62,57 @@ hair = Image.open(
     hair.get_random_image()
 )
 eyebrows = Image.open(
-    "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/eyebrows/thick.png"
+    eyebrows_directory.get_random_image()
 )
 mouth = Image.open(
-    "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/mouth/tongue.png"
+    mouth_directory.get_random_image()
 )
 
 # Resize the background and ally images
 background = background.resize((500, 500))
 ally = ally.resize((150, 150))
 head = head.resize((200, 200))
+eyes = eyes.resize((100, 100))
 body = body.resize((175, 175))
-menu = menu.resize((500, 500))
-hair = hair.resize((250, 350))
-eyebrows = eyebrows.resize((100, 100))
-mouth = mouth.resize((50,50))
+menu = menu.resize((475, 550))
+hair = hair.resize((208, 250))
+eyebrows = eyebrows.resize((120, 90))
+mouth = mouth.resize((25,25))
 
 # Calculate the position to paste the ally image in the bottom left corner
 x_position = 0
 ally_y_position = background.height - ally.height
 
 head_x_position = ((background.width - head.width) // 2)
-head_y_position = ((background.height - head.height) // 2)
+head_y_position = ((background.height - head.height) // 2) - 10
 
-body_x_position = ((background.width - body.width) // 2) + 25
+body_x_position = ((background.width - body.width) // 2) + 15
 body_y_position = background.height - body.height
 
 menu_x_position = (background.width - menu.width) // 2
-menu_y_position = (background.height - menu.height) // 2
+menu_y_position = ((background.height - menu.height) // 2) - 50
 
-hair_x_position = ((background.width - hair.width) // 2)
-hair_y_position = ((background.height - hair.height) // 2)
+hair_x_position = ((background.width - hair.width) // 2) + 5
+hair_y_position = ((background.height - hair.height) // 2) - 35
 
 eyebrows_x_position = ((background.width - eyebrows.width) // 2) + 35
-eyebrows_y_position = ((background.height - eyebrows.height) // 2) - 20
+eyebrows_y_position = ((background.height - eyebrows.height) // 2) - 60
+
+eyes_x_position = (((background.width - head.width) // 2)) + 90
+eyes_y_position = (((background.height - head.height) // 2)) + 30
 
 mouth_x_position = ((background.width - mouth.width) // 2) + 45
-mouth_y_position = ((background.height - mouth.height) // 2) + 70
+mouth_y_position = ((background.height - mouth.height) // 2) + 50
 
 # Paste the ally image onto the background while preserving the alpha layer
 background.paste(ally, (x_position, ally_y_position), ally)
 background.paste(head, (head_x_position, head_y_position), head)
-background.paste(hair, (hair_x_position, hair_y_position), hair)
 background.paste(body, (body_x_position, body_y_position), body)
-background.paste(menu, (menu_x_position, menu_y_position), menu)
 background.paste(eyebrows, (eyebrows_x_position, eyebrows_y_position), eyebrows)
+background.paste(eyes, (eyes_x_position, eyes_y_position), eyes)
+background.paste(hair, (hair_x_position, hair_y_position), hair)
 background.paste(mouth, (mouth_x_position, mouth_y_position), mouth)
+background.paste(menu, (menu_x_position, menu_y_position), menu)
 
 # Save the result
 background.save("test.png", quality=95)
