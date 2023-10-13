@@ -7,6 +7,8 @@ class Avatar:
     def __init__(self, directory):
         self.directory = directory
         self.images = self.load_images()
+        self.resize_values = {}  # Dictionary to store unique resize values
+
 
     def load_images(self):
         image_files = glob.glob(self.directory + '/*.png')  # Change '*.png' to the file extension of your images
@@ -39,6 +41,17 @@ eyes = Avatar(eyes_directory)
 eyebrows_directory = Avatar(eyebrows_directory)
 outfits = Avatar(outfits_directory)
 
+# Define a dictionary to store unique resize values for hair images
+hair_resize_values = {
+    "/Users/aaa/Projects/generative_nft_v1/generative_assets/resized_hair/black tuft test.png": (400, 400),  # Specify unique values for each image
+    "hair_image2.png": (210, 260),
+    "hair_image3.png": (215, 255),
+    # Add more as needed
+}
+
+# create a reference to the randomly selected hair path
+hair_random_image_path = hair.get_random_image()
+
 # Open the background and ally images
 background = Image.open(
     background.get_random_image()
@@ -56,10 +69,10 @@ eyes = Image.open(
     eyes.get_random_image()
 )
 menu = Image.open(
-    "/Users/jaylowe/Projects/generative_nft_v1/generative_assets/attack menu done/spacing rpg attack.png"
+    "/Users/aaa/Projects/generative_nft_v1/generative_assets/attack menu done/spacing rpg attack.png"
 )
 hair = Image.open(
-    hair.get_random_image()
+    hair_random_image_path
 )
 eyebrows = Image.open(
     eyebrows_directory.get_random_image()
@@ -68,6 +81,7 @@ mouth = Image.open(
     mouth_directory.get_random_image()
 )
 
+
 # Resize the background and ally images
 background = background.resize((500, 500))
 ally = ally.resize((150, 150))
@@ -75,7 +89,17 @@ head = head.resize((200, 200))
 eyes = eyes.resize((100, 100))
 body = body.resize((175, 175))
 menu = menu.resize((475, 550))
-hair = hair.resize((208, 250))
+
+## HAIR UPDATES
+# create a default hair resize value to use if 
+default_hair_resize_value = (100, 100)
+
+# select the corresponding resize values based on the provided hair image, using default value if hair path not in hair_resize_values
+hair_resize_value = hair_resize_values.get(hair_random_image_path) if hair_random_image_path in hair_resize_values else default_hair_resize_value
+
+# resize hair
+hair = hair.resize(hair_resize_value)
+
 eyebrows = eyebrows.resize((120, 90))
 mouth = mouth.resize((25,25))
 
